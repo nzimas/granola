@@ -1,41 +1,119 @@
 # Granola
 
-An 8-track granular synthesizer for macOS, built on SuperCollider's audio
-server and designed — hands first — around two BLE control surfaces:
-the **M-Vave SMC-Mixer** and the **M-Vave SMC-PAD Pocket**.
+**An 8-track granular synthesizer for macOS, built for a €40 Bluetooth mixer.**
 
-Load a sample into each of the eight tracks and Granola granulates all of them
-at once, in true stereo. Every track has its own cloud (grain size, density,
-scatter, pitch, envelope shape), its own filters, its own place in the stereo
-field, and sends to a shared reverb and a 10-second stereo delay. On top of that
-sits a performance FX section that assembles random chains from **~100
-Airwindows plugins** and crossfades whole tracks through them.
+Eight samples, eight grain clouds, eight faders. Push a fader and the playhead
+walks through the sample; turn the encoder above it and the cloud opens up.
+Everything runs on SuperCollider's audio server, which is embedded in the app —
+nothing to install, nothing to configure.
 
-SuperCollider is embedded in the app bundle. There are no runtime dependencies:
-`scsynth`, its UGen plugins and `libsndfile` all ship inside `Granola.app`.
-SuperCollider is needed only on the *build* machine, to compile the SynthDefs
-ahead of time.
+Granola is free software, and so is the instrument it wants to be played on.
 
 ---
 
-## This is a controller instrument
+## Contents
 
-**Granola is built for the hardware, not the mouse.** Everything the app does is
-reachable from the screen, and you *can* run it standalone — but that is not
-what it is for, and as its author I do not recommend it. The whole design
-assumes eight faders under your fingers, eight encoders above them, and a pad
-grid to the side. Driving a granular cloud with a trackpad is a different, worse
+- [Why this exists](#why-this-exists)
+- [The hardware](#the-hardware)
+- [Quick start](#quick-start)
+- [The surface](#the-surface)
+- [The one-knob filter](#the-one-knob-filter)
+- [Projects](#projects)
+- [Performance FX: 154 Airwindows effects](#performance-fx-154-airwindows-effects)
+- [Reverb and delay](#reverb-and-delay)
+- [Stereo, seriously](#stereo-seriously)
+- [Watching the grains](#watching-the-grains)
+- [Parameters](#parameters)
+- [Loading samples](#loading-samples)
+- [Audio device](#audio-device)
+- [Building from source](#building-from-source)
+- [How it is put together](#how-it-is-put-together)
+- [Self-test](#self-test)
+- [Status](#status)
+- [Licence](#licence)
+
+---
+
+## Why this exists
+
+This project started with a control surface, not with a synth.
+
+The M-Vave SMC-Mixer arrived on my desk as a cheap Bluetooth fader box, and the
+first thing I noticed was what the faders *wanted* to do. A fader is not a
+volume control by nature. It is a position — an absolute, visible, two-handed
+position that your fingers can find without looking. Point at a place in a
+sample and the fader is already the right shape for the job: **the fader is the
+playhead**.
+
+Once you see that, the rest follows quickly. Eight faders means eight playheads,
+which means eight samples being granulated at once, which is a multitrack
+granular instrument. The encoders above the faders open and close the clouds.
+The buttons under them decide which part of the cloud each encoder is holding.
+Nothing here is a metaphor for a DAW; the surface *is* the instrument, and the
+screen is a readout.
+
+That is the whole philosophy:
+
+- **Hands before menus.** Anything you reach for mid-performance lives on the
+  hardware. Configuration — fade times, wet blends, envelope shapes — lives in
+  the app, where it belongs, because you set it once and then play.
+- **The controller is the source of truth.** When the hardware and the app
+  disagree, the hardware wins. It owns its own LEDs and latches in the modes
+  Granola uses, so the app follows it rather than fighting it.
+- **Stereo is not negotiable.** Granular synthesis has a long tradition of
+  quietly summing your beautiful stereo recording to mono and handing you a pan
+  knob as an apology. Granola never does this. See
+  [Stereo, seriously](#stereo-seriously).
+- **Gestures, not switches.** Effects swell in over seconds. Routing crossfades
+  instead of jumping. Nothing in a performance should click.
+
+It runs standalone. You can drive every parameter with a mouse. But that is a
+different, worse instrument, and I would not recommend meeting it that way.
+
+---
+
+## The hardware
+
+Two controllers, both from M-Vave, both Bluetooth LE, both battery powered, and
+both absurdly cheap. I bought mine on AliExpress; they turn up on the usual
+retail sites too.
+
+| | **SMC-Mixer** | **SMC-PAD Pocket** |
+|---|---|---|
+| What I paid | **~€40** | **~€20** |
+| Controls | 8 faders, 8 **endless** encoders, 4 buttons per strip, global row | 4×4 pad grid |
+| Power | Internal rechargeable battery | Internal rechargeable battery |
+| Connection | Bluetooth LE | Bluetooth LE |
+| Mode Granola needs | **DAW mode** | **CC mode**, channel 4, CC 1–16 |
+
+These things punch enormously above their weight. Two details in particular:
+
+**The encoders are endless.** At forty euros, that is a genuine luxury. Endless
+rotaries mean the controller never has to "catch up" to a value it does not
+know: turn the knob and the parameter moves from wherever it already is. It is
+what makes Granola's macro system possible at all — one encoder can move four
+parameters at once, in normalised space, without any of them jumping.
+
+**Both run on internal batteries, over Bluetooth.** No hub, no power brick, no
+cable to the laptop. The whole instrument is a laptop, two small boxes and
+nothing else — which matters more than it sounds like it should, because it
+changes where you are willing to play it.
+
+They are not perfect, and Granola does not pretend otherwise. The faders are
+7-bit. In CC mode the device owns its LEDs and the host cannot address them.
+Shift transmits nothing at all, so Granola borrows a button to stand in for it.
+Every one of these limits is documented in [The surface](#the-surface) rather
+than papered over, because knowing where the edges are is part of playing an
 instrument.
 
-The two surfaces it is written for:
+### Do I need them?
 
-| Device | Role | Mode |
-|---|---|---|
-| **M-Vave SMC-Mixer** | 8 faders (scrub heads), 8 encoders, 4 macro buttons per strip, global row | **DAW mode** |
-| **M-Vave SMC-PAD Pocket** | 4×4 grid: FX chain slots, grain envelopes, track routing | **CC mode**, channel 4, CC 1–16 |
+No — and yes. Granola launches without either controller and says so in its
+header rather than failing silently. Every parameter is on screen.
 
-Neither is required to launch the app, and Granola says so in its header rather
-than failing silently when one is missing. But the mapping is the instrument.
+But the mapping *is* the instrument. Eight faders under your fingers is not a
+convenience layer over a granular engine; it is the reason the engine is shaped
+the way it is. For sixty euros total, I would rather you played it properly.
 
 ---
 
@@ -54,7 +132,7 @@ The app is unsigned, so the first launch needs one extra step:
 xattr -dr com.apple.quarantine /Applications/Granola.app
 ```
 
-Then open it normally. (Or build from source — see [Building](#building).)
+Then open it normally. (Or build from source — see [Building from source](#building-from-source).)
 
 ### 2. Connect the controllers
 
@@ -82,118 +160,23 @@ Granola works without either; the header will just say so.
    left for low-pass, right for high-pass, centre is neutral.
 6. Raise **RVB** or **DLY** (global buttons 4 and 5 take the encoders over) to
    feed the reverb and delay.
-7. Tap the pad grid's bottom row to throw random **Airwindows chains** at the
-   tracks you select on the top two rows.
+7. Tap the pad grid's bottom row to throw a random **Airwindows chain** at the
+   tracks you select on its top two rows.
 
 To keep what you made: **hold Shift and press Play** to open the project layer,
 then **hold** one of the nine slot buttons to save. Tap to recall.
 
 ---
 
-## Building
+## The surface
 
-```bash
-./Scripts/build.sh
-```
+How the **SMC-Mixer** maps onto the instrument: eight strips, a global row, and
+the rules that make the hardware and the app agree. (The **SMC-PAD Pocket**'s
+4×4 grid is covered under
+[Performance FX](#performance-fx-154-airwindows-effects), since that is mostly
+what it drives.)
 
-Produces `build/Granola.app`. That is the whole build — every dependency is
-vendored in this repository, so a fresh clone builds without fetching anything.
-Requires SuperCollider installed at `/Applications/SuperCollider.app` (override
-with `SC_APP=...`) and a Swift 5.9+ toolchain. Full Xcode is not required — the
-Command Line Tools are enough.
-
-```bash
-open build/Granola.app
-```
-
-### sc3-plugins
-
-The reverb is JPverb, which lives in sc3-plugins. The built plugins and class
-files are vendored under `vendor/sc3-plugins/`, so a normal build needs nothing
-extra. To rebuild them (new SuperCollider version, or a different
-architecture):
-
-```bash
-./Scripts/fetch-sc3-plugins.sh
-```
-
-It clones SuperCollider at the tag matching your installed `scsynth` — the
-plugin ABI has to match — then clones and compiles sc3-plugins against it.
-There are no official prebuilt binaries for current SuperCollider on Apple
-Silicon, and compiling from source beats running downloaded binaries.
-
-Two things to know:
-
-- `NCAnalysisUGens` does not compile with modern clang (a chained comparison in
-  `SMS.cpp`). It is an analysis suite Granola does not use, so the build skips
-  it and carries on. All 171 other plugins build.
-- The vendored binaries are **arm64 only**. For an Intel or universal build,
-  run `ARCHS="arm64;x86_64" ./Scripts/fetch-sc3-plugins.sh`.
-
-`sclang` is pointed at an explicit class-library config listing SuperCollider's
-own library plus `vendor/sc3-plugins/classes`, so builds are reproducible and
-your `~/Library/Application Support/SuperCollider/Extensions` is never touched.
-
----
-
-## Stereo
-
-`GrainBuf` reads **mono** buffers only. The path of least resistance is to sum
-L+R to mono and fake stereo with a pan control; Granola does not do that.
-
-Each track loads into a **buffer pair** (`/b_allocReadChannel` into `bufL` and
-`bufR`). Two `GrainBuf`s share **one** trigger, and `trig`, `dur`, `rate` and
-`pos` are computed once and fed to both — so the channels stay sample-aligned
-and the source's stereo image and phase relationships survive granulation.
-Grains are then placed with `Rotate2`, which rotates the stereo grain in the
-field rather than replacing its content. Mono files point both buffers at the
-same data, so they need no special case.
-
-This is verified, not assumed:
-
-```bash
-./Scripts/verify-stereo.sh
-```
-
-It renders a file with 300 Hz on the left and 900 Hz on the right, granulates it
-through the real app code path, and checks the recording. A pass requires the
-output channels to remain decorrelated:
-
-```
-dominant L      301 Hz
-dominant R      900 Hz
-correlation     -0.0000
-PASS: output is genuinely stereo (channels carry distinct content)
-```
-
-Files with more than two channels currently load their first stereo pair; the
-UI says so on the track rather than dropping the content silently.
-
----
-
-## Loading samples
-
-Click a track's waveform slot (or its name, to replace what's there) to open a
-standard file dialog. Right-click a slot for Load / Clear / Reveal in Finder.
-Drag-and-drop also works, but nothing depends on it.
-
-Non-native formats (mp3, m4a) are transcoded once to a float WAV in the app
-cache; WAV, AIFF, FLAC and CAF are passed to the server untouched.
-
-## Audio device
-
-Granola pins `scsynth` to the system's **default output device** with `-H`.
-This is not cosmetic: left to itself, scsynth also opens the default *input*
-device, which makes macOS raise a microphone permission prompt for an app that
-only granulates files. An output device reports zero input streams, so nothing
-is opened and no prompt appears.
-
-The consequence is that the device is chosen at boot. If you change the system
-output device, use **Restart engine** in the header to follow it.
-
-## The SMC-Mixer
-
-The device must be in **DAW mode** — hold `Shift` and press `Left`/`Right` on
+The mixer must be in **DAW mode** — hold `Shift` and press `Left`/`Right` on
 the hardware. There is no MIDI command for this; the app detects CC mode and
 says so in the header rather than silently failing to light anything.
 
@@ -327,6 +310,31 @@ app's scrub head — which is exactly when you want to know.
 
 ---
 
+## The one-knob filter
+
+Every track has a **DJ filter** in the style of the Novation Circuit machines:
+one control, centre-neutral, covering cutoff, resonance and filter *mode* at
+once. Hold **Shift** and turn that track's encoder.
+
+- Turn **down** and a low-pass sweeps from 20 kHz to 120 Hz.
+- Turn **up** and a high-pass sweeps from 20 Hz to 7 kHz.
+- Resonance rises as you leave centre, so the further it goes the more it sings.
+- Centre has a detent and is genuinely neutral — measured at ±0.0 dB and no
+  change in spectral centroid.
+
+From the first shift-held tick, that strip's readout switches to the filter
+(`LP 62` / `FLT C` / `HP 34`) and its encoder ring goes bipolar, and stays there
+until Shift is released — not until the encoder stops. Only the strips you
+actually touched change; the rest keep showing their selector.
+
+> Resonance peaks around three quarters of the travel rather than at the stop.
+> At the extreme the resonant peak sits on top of whatever little is left in the
+> band, which reads as a level jump rather than as character: the first version
+> was **+7 dB louder** at the low stop. It now falls away toward both ends, as a
+> filter sweep should.
+
+---
+
 ## Projects
 
 Eight slots hold the whole state of the machine: every track's sample and
@@ -391,7 +399,9 @@ atomically. A missing sample is reported on the track rather than failing the
 whole load, and samples are resolved by bookmark first so a project survives its
 files being moved.
 
-## Performance FX — Airwindows
+---
+
+## Performance FX: 154 Airwindows effects
 
 154 Airwindows effects, compiled into the app as SuperCollider UGens.
 
@@ -410,16 +420,8 @@ therefore the sound, is exactly as published. MIT licensed.
 ```
 
 `generate.py` emits one UGen wrapper per plugin, the sclang UGen classes, a
-SynthDef per effect, and a JSON manifest of parameter names and defaults. Three
-things it has to get right, all of which bit during development:
-
-- SC's `RTAlloc` macro expands to `(*ft->…)`, so every unit needs a file-scope
-  `ft`. Each plugin is its own translation unit anyway — mandatory, since every
-  Airwindows header declares `kParamA`/`kNumPrograms` at file scope.
-- All 154 plugins define `createEffectInstance` globally and collide at link;
-  renamed per plugin with `-D` rather than editing sources.
-- Parameter names must be read from `getParameterName` only — `getParameterLabel`
-  has an identical shape with empty strings and silently overwrites them.
+SynthDef per effect, and a JSON manifest of parameter names and defaults — 154
+effects' worth, without a single line of Airwindows source being edited.
 
 ### Loudness
 
@@ -467,7 +469,7 @@ to hit as hard as it wants to.
 
 ### Chains
 
-The bottom two pad rows are **eight chain slots**. Toggling one on assembles a
+The bottom pad row holds **four chain slots**. Toggling one on assembles a
 **random chain of 1–4 effects** with randomised parameters; roughly one link in
 three also gets an LFO on one of its parameters. Dry/wet is biased upward so a
 random link is always audible.
@@ -524,32 +526,9 @@ fx   RMS 0.09260   brightness 1325 Hz
 difference 289% of dry
 ```
 
-## The one-knob filter
-
-Every track has a **DJ filter** in the style of the Novation Circuit machines:
-one control, centre-neutral, covering cutoff, resonance and filter *mode* at
-once. Hold **Shift** and turn that track's encoder.
-
-- Turn **down** and a low-pass sweeps from 20 kHz to 120 Hz.
-- Turn **up** and a high-pass sweeps from 20 Hz to 7 kHz.
-- Resonance rises as you leave centre, so the further it goes the more it sings.
-- Centre has a detent and is genuinely neutral — measured at ±0.0 dB and no
-  change in spectral centroid.
-
-From the first shift-held tick, that strip's readout switches to the filter
-(`LP 62` / `FLT C` / `HP 34`) and its encoder ring goes bipolar, and stays there
-until Shift is released — not until the encoder stops. Only the strips you
-actually touched change; the rest keep showing their selector.
-
-> Resonance peaks around three quarters of the travel rather than at the stop.
-> At the extreme the resonant peak sits on top of whatever little is left in the
-> band, which reads as a level jump rather than as character: the first version
-> was **+7 dB louder** at the low stop. It now falls away toward both ends, as a
-> filter sweep should.
-
 ---
 
-## Master effects
+## Reverb and delay
 
 Both are send effects fed from every track. **All track sends start at zero** —
 the effects are set up to be immediately usable, and you dial them in per track.
@@ -589,7 +568,171 @@ The `stereo` / `ping-pong` button is a shortcut for cross 0 and 1.
 Changing the 10 s ceiling means changing `DelayC`'s `maxdelaytime` in
 `Scripts/synthdefs.scd` **and** `GranolaModel.maxDelayTime` together.
 
-## Architecture
+---
+
+## Stereo, seriously
+
+`GrainBuf` reads **mono** buffers only. The path of least resistance is to sum
+L+R to mono and fake stereo with a pan control; Granola does not do that.
+
+Each track loads into a **buffer pair** (`/b_allocReadChannel` into `bufL` and
+`bufR`). Two `GrainBuf`s share **one** trigger, and `trig`, `dur`, `rate` and
+`pos` are computed once and fed to both — so the channels stay sample-aligned
+and the source's stereo image and phase relationships survive granulation.
+Grains are then placed with `Rotate2`, which rotates the stereo grain in the
+field rather than replacing its content. Mono files point both buffers at the
+same data, so they need no special case.
+
+This is verified, not assumed:
+
+```bash
+./Scripts/verify-stereo.sh
+```
+
+It renders a file with 300 Hz on the left and 900 Hz on the right, granulates it
+through the real app code path, and checks the recording. A pass requires the
+output channels to remain decorrelated:
+
+```
+dominant L      301 Hz
+dominant R      900 Hz
+correlation     -0.0000
+PASS: output is genuinely stereo (channels carry distinct content)
+```
+
+Files with more than two channels currently load their first stereo pair; the
+UI says so on the track rather than dropping the content silently.
+
+---
+
+## Watching the grains
+
+Each track's waveform window draws its grain cloud live: every grain is a
+horizontal bar starting where it scattered to and running as long as it reads,
+fading through that track's actual envelope shape as it ages. Density shows up
+as how crowded the picture is, grain size as how long the bars are, and the
+scatter window as a tinted region around the scrub head.
+
+The server does not report individual grains — at 200 grains a second it should
+not — so the picture is reconstructed from the same parameters the voice is
+running on. Grain *n* is the one that fired at `n / density`, which makes the
+whole cloud a pure function of the clock: no particle list and no per-frame
+state to drift out of sync. It runs at 30 fps, only on playing tracks, and sits
+outside the `Equatable` waveform canvas so the expensive layer never redraws.
+
+---
+
+## Parameters
+
+Per track: position, grain size, density, scatter, drift, glide, scan, pitch,
+pitch spray, pitch quantise, reverse, freeze, DJ filter, low-pass, high-pass,
+resonance, pan, stereo spread, level, reverb and delay sends.
+
+**Scatter** is a *percentage of the loaded sample*, not a number of seconds, so
+the same knob position scatters the same proportion of a half-second hit and a
+ten-second field recording. It runs on a cubic curve: millisecond scatter stays
+reachable at the bottom (knob 0.1 is 8 ms on an 8 s sample) while the rest of
+the travel spreads evenly.
+
+> It began as seconds on an exponential curve, and that was wrong twice over.
+> Exponential mapping needs a non-zero floor, so four fifths of the rotation sat
+> in values too small to hear and the last fifth jumped straight to the whole
+> file; and being absolute, it could never cover a long sample at all. Granulating
+> a 200 Hz→8 kHz sweep turns the scatter window into a frequency band you can
+> read directly, which is how the new curve was checked against prediction.
+
+**Grain envelope shape** — the amplitude contour applied to every individual
+grain. Four of them: **Gaussian** (soft and round, the default), **Percussive**
+(fires hard and decays), **Reverse** (swells into each grain) and **Plateau**
+(a flat-topped Tukey window that keeps more of the source's own character).
+Set it per track in the track panel, or globally from the pad grid.
+
+> The shapes are uploaded as buffers at boot. The allocation and the fill must
+> be separated by a `/sync`:
+> `/b_alloc` is asynchronous while `/b_setn` runs immediately, so sending them
+> together silently discards the data and leaves a buffer of zeros — which
+> windows every grain to nothing, and every buffer-backed shape was silent.
+>
+> Raw values are not renumbered when shapes are added or removed: projects store
+> the shape as an integer and the buffers are addressed by it.
+
+---
+
+## Loading samples
+
+Click a track's waveform slot (or its name, to replace what's there) to open a
+standard file dialog. Right-click a slot for Load / Clear / Reveal in Finder.
+Drag-and-drop also works, but nothing depends on it.
+
+Non-native formats (mp3, m4a) are transcoded once to a float WAV in the app
+cache; WAV, AIFF, FLAC and CAF are passed to the server untouched.
+
+---
+
+## Audio device
+
+Granola pins `scsynth` to the system's **default output device** with `-H`.
+This is not cosmetic: left to itself, scsynth also opens the default *input*
+device, which makes macOS raise a microphone permission prompt for an app that
+only granulates files. An output device reports zero input streams, so nothing
+is opened and no prompt appears.
+
+The consequence is that the device is chosen at boot. If you change the system
+output device, use **Restart engine** in the header to follow it.
+
+---
+
+## Building from source
+
+```bash
+./Scripts/build.sh
+```
+
+Produces `build/Granola.app`. That is the whole build — every dependency is
+vendored in this repository, so a fresh clone builds without fetching anything.
+Requires SuperCollider installed at `/Applications/SuperCollider.app` (override
+with `SC_APP=...`) and a Swift 5.9+ toolchain. Full Xcode is not required — the
+Command Line Tools are enough.
+
+```bash
+open build/Granola.app
+```
+
+### sc3-plugins
+
+The reverb is JPverb, which lives in sc3-plugins. The built plugins and class
+files are vendored under `vendor/sc3-plugins/`, so a normal build needs nothing
+extra. To rebuild them (new SuperCollider version, or a different
+architecture):
+
+```bash
+./Scripts/fetch-sc3-plugins.sh
+```
+
+It clones SuperCollider at the tag matching your installed `scsynth` — the
+plugin ABI has to match — then clones and compiles sc3-plugins against it.
+There are no official prebuilt binaries for current SuperCollider on Apple
+Silicon, and compiling from source beats running downloaded binaries.
+
+Two things to know:
+
+- `NCAnalysisUGens` does not compile with modern clang (a chained comparison in
+  `SMS.cpp`). It is an analysis suite Granola does not use, so the build skips
+  it and carries on. All 171 other plugins build.
+- The vendored binaries are **arm64 only**. For an Intel or universal build,
+  run `ARCHS="arm64;x86_64" ./Scripts/fetch-sc3-plugins.sh`.
+
+`sclang` is pointed at an explicit class-library config listing SuperCollider's
+own library plus `vendor/sc3-plugins/classes`, so builds are reproducible and
+your `~/Library/Application Support/SuperCollider/Extensions` is never touched.
+
+---
+
+## How it is put together
+
+> Everything from here on is implementation detail — worth reading if you are
+> building, extending or debugging Granola, and safely skippable if you just
+> want to play it.
 
 ```
 Sources/Granola/
@@ -647,42 +790,6 @@ Sends are post-fader, so muting a track also mutes what it feeds the effects.
 
 ---
 
-## Parameters
-
-Per track: position, grain size, density, scatter, drift, glide, scan, pitch,
-pitch spray, pitch quantise, reverse, freeze, DJ filter, low-pass, high-pass,
-resonance, pan, stereo spread, level, reverb and delay sends.
-
-**Scatter** is a *percentage of the loaded sample*, not a number of seconds, so
-the same knob position scatters the same proportion of a half-second hit and a
-ten-second field recording. It runs on a cubic curve: millisecond scatter stays
-reachable at the bottom (knob 0.1 is 8 ms on an 8 s sample) while the rest of
-the travel spreads evenly.
-
-> It began as seconds on an exponential curve, and that was wrong twice over.
-> Exponential mapping needs a non-zero floor, so four fifths of the rotation sat
-> in values too small to hear and the last fifth jumped straight to the whole
-> file; and being absolute, it could never cover a long sample at all. Granulating
-> a 200 Hz→8 kHz sweep turns the scatter window into a frequency band you can
-> read directly, which is how the new curve was checked against prediction.
-
-**Grain envelope shape** — the amplitude contour applied to every individual
-grain. Four of them: **Gaussian** (soft and round, the default), **Percussive**
-(fires hard and decays), **Reverse** (swells into each grain) and **Plateau**
-(a flat-topped Tukey window that keeps more of the source's own character).
-Set it per track in the track panel, or globally from the pad grid.
-
-> The shapes are uploaded as buffers at boot. The allocation and the fill must
-> be separated by a `/sync`:
-> `/b_alloc` is asynchronous while `/b_setn` runs immediately, so sending them
-> together silently discards the data and leaves a buffer of zeros — which
-> windows every grain to nothing, and every buffer-backed shape was silent.
->
-> Raw values are not renumbered when shapes are added or removed: projects store
-> the shape as an integer and the buffers are addressed by it.
-
----
-
 ## Self-test
 
 ```bash
@@ -721,23 +828,6 @@ image**. Real recordings range from wide to dual mono, so an absolute
 correlation threshold is the wrong test for them — but "whatever width went in
 comes out" holds for any source. The self-test sweeps the read head across the
 whole buffer during the recording so the two measurements cover the same audio.
-
----
-
-## Waveform animation
-
-Each track's waveform window draws its grain cloud live: every grain is a
-horizontal bar starting where it scattered to and running as long as it reads,
-fading through that track's actual envelope shape as it ages. Density shows up
-as how crowded the picture is, grain size as how long the bars are, and the
-scatter window as a tinted region around the scrub head.
-
-The server does not report individual grains — at 200 grains a second it should
-not — so the picture is reconstructed from the same parameters the voice is
-running on. Grain *n* is the one that fired at `n / density`, which makes the
-whole cloud a pure function of the clock: no particle list and no per-frame
-state to drift out of sync. It runs at 30 fps, only on playing tracks, and sits
-outside the `Equatable` waveform canvas so the expensive layer never redraws.
 
 ---
 
