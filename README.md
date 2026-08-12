@@ -92,22 +92,15 @@ then **hold** one of the nine slot buttons to save. Tap to recall.
 
 ## Building
 
-Most people should just download the release. To build it yourself, from a
-fresh clone:
-
 ```bash
-./Scripts/fetch-sc3-plugins.sh   # once — GPL plugins, not committed here
-./Scripts/fetch-airwindows.sh    # once — fetches and compiles the effects
 ./Scripts/build.sh
 ```
 
-Produces `build/Granola.app`. Requires SuperCollider installed at
-`/Applications/SuperCollider.app` (override with `SC_APP=...`), CMake, and a
-Swift 5.9+ toolchain. Full Xcode is not required — the Command Line Tools are
-enough.
-
-Everything the fetch scripts produce lands in `vendor/` and
-`Resources/synthdefs/`, both gitignored: this repository holds source only.
+Produces `build/Granola.app`. That is the whole build — every dependency is
+vendored in this repository, so a fresh clone builds without fetching anything.
+Requires SuperCollider installed at `/Applications/SuperCollider.app` (override
+with `SC_APP=...`) and a Swift 5.9+ toolchain. Full Xcode is not required — the
+Command Line Tools are enough.
 
 ```bash
 open build/Granola.app
@@ -115,16 +108,14 @@ open build/Granola.app
 
 ### sc3-plugins
 
-The reverb is JPverb, which lives in sc3-plugins. Those plugins are **not
-committed to this repository** — they are GPL, and this repo is MIT — so a
-fresh clone has to build them once:
+The reverb is JPverb, which lives in sc3-plugins. The built plugins and class
+files are vendored under `vendor/sc3-plugins/`, so a normal build needs nothing
+extra. To rebuild them (new SuperCollider version, or a different
+architecture):
 
 ```bash
 ./Scripts/fetch-sc3-plugins.sh
 ```
-
-They land in `vendor/sc3-plugins/`, which is gitignored. Run it again for a new
-SuperCollider version or a different architecture.
 
 It clones SuperCollider at the tag matching your installed `scsynth` — the
 plugin ABI has to match — then clones and compiles sc3-plugins against it.
@@ -136,8 +127,8 @@ Two things to know:
 - `NCAnalysisUGens` does not compile with modern clang (a chained comparison in
   `SMS.cpp`). It is an analysis suite Granola does not use, so the build skips
   it and carries on. All 171 other plugins build.
-- The build defaults to **arm64 only**. For an Intel or universal build, run
-  `ARCHS="arm64;x86_64" ./Scripts/fetch-sc3-plugins.sh`.
+- The vendored binaries are **arm64 only**. For an Intel or universal build,
+  run `ARCHS="arm64;x86_64" ./Scripts/fetch-sc3-plugins.sh`.
 
 `sclang` is pointed at an explicit class-library config listing SuperCollider's
 own library plus `vendor/sc3-plugins/classes`, so builds are reproducible and
@@ -793,17 +784,18 @@ Full licence texts and per-component detail (versions, modifications, source
 locations) are in [`THIRD-PARTY-LICENSES.md`](THIRD-PARTY-LICENSES.md) and
 [`licenses/`](licenses/), and ship alongside the app in every release.
 
-**On the GPL components, plainly:** the *source code in this repository* is MIT
-and contains no GPL code. The *distributed application bundle* is a different
-thing — it contains unmodified GPL-licensed binaries (`scsynth` and its
-plugins), and those binaries remain under the GPL wherever the bundle goes.
-Granola drives `scsynth` as a separate process over a UDP socket rather than
-linking against it. Complete corresponding source for the bundled GPL
-components is available unmodified from the upstream projects linked above, at
-the versions named there; `Scripts/fetch-sc3-plugins.sh` pins and fetches
-exactly what is built in.
+**On the GPL components:** Granola is self-contained by design — the
+dependencies are vendored in this repository and bundled inside the app, and
+that is the point. The MIT licence covers Granola's own code; the vendored and
+bundled GPL components stay under the GPL, unmodified, exactly as their authors
+intended. Granola drives `scsynth` as a separate process over a UDP socket
+rather than linking against it.
 
-If you redistribute the bundle, you carry those obligations with it.
+Complete corresponding source for every GPL component is the upstream project
+linked above at the version named in
+[`THIRD-PARTY-LICENSES.md`](THIRD-PARTY-LICENSES.md); nothing is patched, and
+`Scripts/fetch-sc3-plugins.sh` reproduces the vendored build exactly. Keep that
+notice and `licenses/` with the app if you pass it on.
 
 ### Hardware
 

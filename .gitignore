@@ -4,12 +4,3 @@ build/
 .swiftpm/
 *.xcuserdatad
 .DS_Store
-
-# Third-party code and build output, fetched/built by the scripts in Scripts/.
-# Deliberately not committed: sc3-plugins and SuperCollider are GPL, and this
-# repository is MIT. Run Scripts/fetch-sc3-plugins.sh to populate it.
-vendor/
-
-# Compiled SynthDefs — regenerated from Scripts/synthdefs.scd by
-# Scripts/build-synthdefs.sh on every build.
-Resources/synthdefs/
