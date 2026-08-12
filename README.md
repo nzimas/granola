@@ -789,6 +789,10 @@ each keeps its own licence:
 | [libsndfile](https://github.com/libsndfile/libsndfile) | Audio file reading inside `scsynth`. Dynamically linked. | **LGPL-2.1-or-later** |
 | Swift standard library / SwiftUI / CoreMIDI / AVFoundation | The app itself. | Apache-2.0 with Runtime Library Exception; Apple system frameworks |
 
+Full licence texts and per-component detail (versions, modifications, source
+locations) are in [`THIRD-PARTY-LICENSES.md`](THIRD-PARTY-LICENSES.md) and
+[`licenses/`](licenses/), and ship alongside the app in every release.
+
 **On the GPL components, plainly:** the *source code in this repository* is MIT
 and contains no GPL code. The *distributed application bundle* is a different
 thing — it contains unmodified GPL-licensed binaries (`scsynth` and its
