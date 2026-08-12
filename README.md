@@ -1,6 +1,10 @@
-# Granola
+<p align="center">
+  <img src="Assets/Brand/granola-logo-horizontal.png" alt="Granola" width="620">
+</p>
 
-**An 8-track granular synthesizer for macOS, built for the M-VAVE SMC-Mixer and M-VAVE SMC-Pad Pocket controllers.**
+<p align="center">
+  <strong>An 8-track granular synthesizer for macOS, built for the M-VAVE SMC-Mixer and M-VAVE SMC-Pad Pocket controllers.</strong>
+</p>
 
 Eight samples, eight grain clouds, eight faders. Push a fader and the playhead
 walks through the sample; turn the encoder above it and the cloud opens up.

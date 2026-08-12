@@ -65,6 +65,26 @@ fi
 PLUGIN_COUNT=$(ls -1 "$APP/Contents/Resources/SuperCollider/plugins/" | wc -l | tr -d ' ')
 echo "    embedded scsynth + $PLUGIN_COUNT UGen plugins (core + sc3-plugins)"
 
+# --- app icon ---------------------------------------------------------------
+# Built here rather than committed as a binary .icns, so the one PNG in
+# Assets/Brand stays the single source of truth for the mark.
+ICON_SRC="$ROOT/Assets/Brand/granola-app-icon.png"
+if [[ -f "$ICON_SRC" ]]; then
+    ICONSET="$ROOT/build/Granola.iconset"
+    rm -rf "$ICONSET"; mkdir -p "$ICONSET"
+    for size in 16 32 128 256 512; do
+        sips -z $size $size "$ICON_SRC" \
+            --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
+        sips -z $((size * 2)) $((size * 2)) "$ICON_SRC" \
+            --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
+    done
+    iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/Granola.icns"
+    rm -rf "$ICONSET"
+    echo "    app icon built from $(basename "$ICON_SRC")"
+else
+    echo "warning: $ICON_SRC missing — building without an app icon" >&2
+fi
+
 # --- Info.plist -------------------------------------------------------------
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -74,6 +94,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundleName</key><string>Granola</string>
     <key>CFBundleDisplayName</key><string>Granola</string>
     <key>CFBundleExecutable</key><string>Granola</string>
+    <key>CFBundleIconFile</key><string>Granola</string>
     <key>CFBundleIdentifier</key><string>com.granola.Granola</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>0.1.0</string>
